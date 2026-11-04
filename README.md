@@ -12,6 +12,18 @@
 - 정상/이상 같은 판단이나 기준선은 표시하지 않습니다.
 - 수치의 정확성과 최신성은 원천 데이터에 따릅니다. 수온·염분의 단위는 원천 데이터에 표기되어 있지 않습니다.
 
+## 앱으로 설치하기
+
+별도 앱스토어 없이 브라우저에서 홈 화면에 추가해 앱처럼 쓸 수 있습니다(PWA). 주소창 없이 전체 화면으로 열리고, 네트워크가 없을 때는 마지막으로 저장된 값을 보여줍니다. 저장된 값도 시각이 60분을 넘으면 "수신 중단"으로 표시되며 최신 값처럼 보이지 않습니다.
+
+| 환경 | 방법 |
+|---|---|
+| Android Chrome·삼성 인터넷 | 화면 하단의 **앱으로 설치** 버튼 또는 브라우저 메뉴(⋮)의 "앱 설치"/"홈 화면에 추가" |
+| iPhone·iPad Safari | 공유 버튼 → **홈 화면에 추가** |
+| 카카오톡·네이버 등 앱 안에서 연 경우 | 설치 불가. 주소를 Chrome·삼성 인터넷·Safari 등 기본 브라우저에서 다시 여세요 |
+
+HTTPS 주소(GitHub Pages)에서만 설치할 수 있습니다. 값과 화면 코드는 항상 네트워크에서 먼저 받고, 네트워크가 안 될 때만 저장본을 씁니다. 아이콘을 바꾸려면 `node scripts/make_icons.js`로 다시 만들어 커밋하세요.
+
 ## 구성
 
 ```
@@ -26,9 +38,10 @@ scripts/build_site.py ──▶ site/ (web/ + latest.json + history.json) ──
 
 | 경로 | 설명 |
 |---|---|
-| `web/` | 정적 화면(빌드 도구·외부 라이브러리 없음). `logic.js`(순수 함수), `chart.js`(SVG 차트), `trend.js`(추이 영역), `app.js`(화면) |
+| `web/` | 정적 화면(빌드 도구·외부 라이브러리 없음). `logic.js`(순수 함수), `chart.js`(SVG 차트), `trend.js`(추이 영역), `app.js`(화면), `sw.js`·`manifest.webmanifest`·`icons/`(설치형 웹앱) |
 | `scripts/collect.py` | 4개 본부 수집기. 중복 행과 오래된 값은 이력에 저장하지 않음 |
 | `scripts/build_site.py` | 배포용 사이트와 추이용 `history.json`(최근 30일) 생성 |
+| `scripts/make_icons.js` | 앱 아이콘(PNG) 생성기(Playwright 필요, 아이콘을 바꿀 때만 실행) |
 | `scripts/verify_api.py` | API 응답 형식 확인용 수동 실행 스크립트 |
 | `.github/workflows/collect.yml` | 수집(10분 주기) 후 선택적으로 Pages 배포 |
 | `.github/workflows/verify-api.yml` | API 확인용 수동 워크플로 |

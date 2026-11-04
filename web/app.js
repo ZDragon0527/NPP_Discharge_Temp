@@ -85,6 +85,11 @@
   }
 
   /* ---- 상세 ---- */
+  // 값 문자열이 길면(예: +10.6) 카드 폭에 맞게 글자를 줄인다. 숫자는 줄바꿈하지 않는다.
+  function valueClass(text, hasValue) {
+    return 'value' + (hasValue ? '' : ' none') + (text.length > 4 ? ' long' : '');
+  }
+
   // 단위(°C)는 섹션 제목과 표 머리글에 표기한다. 값 옆에 붙이면 좁은 화면에서 줄바꿈된다.
   function metric(label, item, now) {
     var showValue = item && !item.stale && item.num !== null;
@@ -95,7 +100,7 @@
     else sub = L.formatTime(item.time, now) + ' 기준';
     return h('div', { class: 'metric' },
       h('div', { class: 'label', text: label }),
-      h('div', { class: 'value' + (showValue ? '' : ' none'), text: valueText }),
+      h('div', { class: valueClass(valueText, showValue), text: valueText }),
       h('div', { class: 'sub', text: sub }));
   }
 
@@ -103,7 +108,7 @@
     var ok = v.diff !== null;
     return h('div', { class: 'metric diff' },
       h('div', { class: 'label', text: '온도차' }),
-      h('div', { class: 'value' + (ok ? '' : ' none'), text: ok ? L.formatDiff(v.diff) : '—' }),
+      h('div', { class: valueClass(ok ? L.formatDiff(v.diff) : '—', ok), text: ok ? L.formatDiff(v.diff) : '—' }),
       h('div', { class: 'sub', text: ok ? '배수−취수' : '계산 불가' }));
   }
 
@@ -227,6 +232,10 @@
         '데이터를 불러오지 못했습니다.' + (state.latest ? ' 마지막으로 받은 값을 표시합니다.' : ''),
         h('button', { type: 'button', onclick: load, text: '다시 시도' })));
     }
+    if (navigator.onLine === false) {
+      area.appendChild(h('div', { class: 'notice warn' },
+        '오프라인 상태입니다. 마지막으로 저장된 값을 표시하며, 시각이 오래된 값은 "수신 중단"으로 표시됩니다.'));
+    }
     if (state.latest) {
       var c = L.collectorStatus(state.latest, now);
       if (c.delayed) {
@@ -315,6 +324,58 @@
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden && Date.now() - state.lastFetchMs > 2 * 60 * 1000) load();
   });
+  /* ---- 설치형 웹앱(PWA) ---- */
+  var deferredPrompt = null;
+
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+  function isIos() {
+    var ua = navigator.userAgent || '';
+    return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  }
+  function isInAppBrowser() {   // 카카오톡·네이버 등 앱 내 브라우저는 홈 화면 설치를 지원하지 않는다
+    return /KAKAOTALK|NAVER\(inapp|; wv\)|FBAN|FBAV|Instagram|Line\//i.test(navigator.userAgent || '');
+  }
+
+  function updateInstallUi() {
+    var line = $('install-line'), btn = $('install-btn'), hint = $('install-hint');
+    line.hidden = true; btn.hidden = true; hint.hidden = true;
+    if (isStandalone()) return;                       // 이미 앱으로 실행 중
+    if (isInAppBrowser()) {
+      hint.textContent = '앱으로 설치하려면 Chrome·삼성 인터넷·Safari 같은 기본 브라우저에서 이 주소를 열어 주세요.';
+      hint.hidden = false; line.hidden = false;
+    } else if (deferredPrompt) {
+      btn.hidden = false; line.hidden = false;
+    } else if (isIos()) {
+      hint.textContent = '앱처럼 쓰려면 Safari의 공유 버튼에서 "홈 화면에 추가"를 선택하세요.';
+      hint.hidden = false; line.hidden = false;
+    }
+  }
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    updateInstallUi();
+  });
+  window.addEventListener('appinstalled', function () { deferredPrompt = null; updateInstallUi(); });
+  $('install-btn').addEventListener('click', function () {
+    if (!deferredPrompt) return;
+    var p = deferredPrompt;
+    deferredPrompt = null;
+    p.prompt();
+    Promise.resolve(p.userChoice).then(updateInstallUi, updateInstallUi);
+  });
+  updateInstallUi();
+
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').catch(function () { /* 설치형 기능만 빠질 뿐 화면은 정상 동작 */ });
+    });
+  }
+  window.addEventListener('online', function () { load(); });
+  window.addEventListener('offline', render);
+
   setInterval(load, REFETCH_MS);
   setInterval(render, RERENDER_MS);
   load();

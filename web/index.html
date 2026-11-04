@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#0b6e99" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1820" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="온배수 현황">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>원전 온배수 현황</title>
   <meta name="description" content="원자력발전소 본부별 취수구·배수구 수온과 염분 현황">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b6e99'/%3E%3Cpath d='M5 12c4-3 6 3 11 0s7 3 11 0M5 20c4-3 6 3 11 0s7 3 11 0' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
@@ -38,6 +46,10 @@
       <p class="update-line">
         <span id="collected">마지막 수집: -</span>
         <button type="button" id="refresh" class="refresh">새로고침</button>
+      </p>
+      <p id="install-line" class="install-line" hidden>
+        <button type="button" id="install-btn" class="refresh" hidden>앱으로 설치</button>
+        <span id="install-hint" hidden></span>
       </p>
       <p class="source">
         출처: 한국수력원자력(주) 「원자력발전소 실시간 온배수 현황」, 공공데이터포털(data.go.kr).

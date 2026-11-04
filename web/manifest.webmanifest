@@ -1,0 +1,19 @@
+{
+  "name": "원전 온배수 현황",
+  "short_name": "온배수 현황",
+  "description": "원자력발전소 본부별 취수구·배수구 수온과 염분 현황",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f6f9",
+  "theme_color": "#0b6e99",
+  "categories": ["utilities", "science"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
