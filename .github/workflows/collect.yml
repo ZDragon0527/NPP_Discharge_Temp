@@ -1,0 +1,105 @@
+name: Collect
+
+# 10분마다 4개 본부의 온배수 현황을 수집해 data 브랜치에 누적한다.
+# - schedule 은 기본 브랜치의 워크플로만 실행된다(최소 5분, 최선 노력이라 지연·누락 가능).
+# - 지연이 심하면 cron-job.org 등 외부 스케줄러가 workflow_dispatch API 를 호출하도록 대체할 수 있다.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# 수집이 겹쳐 data 브랜치 push 가 충돌하지 않도록 직렬 실행한다.
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Prepare data branch
+        run: |
+          if git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
+            git fetch --depth=1 origin data
+            git worktree add -B data data-out FETCH_HEAD
+          else
+            git worktree add --orphan -b data data-out
+          fi
+
+      - name: Collect
+        id: collect
+        continue-on-error: true
+        env:
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: python3 scripts/collect.py --out data-out
+
+      - name: Commit data
+        run: |
+          [ -d data-out ] || exit 0
+          cd data-out
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git commit -m "data: $(date -u +'%Y-%m-%d %H:%M') UTC"
+          for i in 1 2 3; do
+            git push origin data && exit 0
+            git pull --rebase origin data
+            sleep 3
+          done
+          echo "push 실패"
+          exit 1
+
+      # 일부 본부 수집이 실패해도 성공분은 위에서 저장한다. 실패는 여기서 워크플로 실패로 표시해 알림을 받는다.
+      - name: Fail if collection failed
+        if: steps.collect.outcome == 'failure'
+        run: exit 1
+
+  # 수집 직후 화면(정적 사이트)을 GitHub Pages 에 배포한다.
+  # 저장소 변수 PAGES_ENABLED=true 일 때만 실행된다. 설정 전(저장소 비공개 등)에는 건너뛰어
+  # 매 10분마다 실패 알림이 오지 않게 한다.
+  #   켜는 방법: ① 저장소를 공개로 전환(무료 Pages 조건)  ② Settings → Pages → Source: GitHub Actions
+  #             ③ Settings → Secrets and variables → Actions → Variables 에 PAGES_ENABLED = true 추가
+  # 수집이 일부 실패해도(collect 실패) 마지막으로 받은 값을 배포한다. 화면이 시각을 보고 오래된 값을 가린다.
+  deploy:
+    needs: collect
+    if: ${{ !cancelled() && vars.PAGES_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Checkout data branch
+        uses: actions/checkout@v5
+        with:
+          ref: data
+          path: data-out
+
+      - name: Build site
+        run: python3 scripts/build_site.py --data-dir data-out --out site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

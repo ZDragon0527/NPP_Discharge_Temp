@@ -1,0 +1,21 @@
+name: Verify API
+
+# 수동 실행 전용 (Actions 탭 → Verify API → Run workflow).
+# 외부 PR 등 다른 이벤트로는 실행되지 않으므로 Secret이 노출될 경로가 없다.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Probe API
+        env:
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: python3 scripts/verify_api.py

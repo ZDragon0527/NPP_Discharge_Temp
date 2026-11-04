@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light dark">
+  <title>원전 온배수 현황</title>
+  <meta name="description" content="원자력발전소 본부별 취수구·배수구 수온과 염분 현황">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b6e99'/%3E%3Cpath d='M5 12c4-3 6 3 11 0s7 3 11 0M5 20c4-3 6 3 11 0s7 3 11 0' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-view="detail">
+  <header class="site-header">
+    <div class="wrap">
+      <h1>원자력발전소 온배수 현황</h1>
+      <p class="sub">본부별 취수구·배수구 수온과 염분</p>
+    </div>
+  </header>
+
+  <main class="wrap" id="main">
+    <nav id="tabs" class="tabs" role="tablist" aria-label="본부 선택"></nav>
+    <div id="notice" class="notice-area" role="status" aria-live="polite"></div>
+    <section id="detail" class="detail" aria-live="polite"></section>
+    <section id="trend" class="trend-section"></section>
+    <section id="compare" class="compare" aria-labelledby="compare-title">
+      <h2 id="compare-title">4개 본부 비교</h2>
+      <div id="compare-cards" class="compare-cards"></div>
+      <div class="table-wrap" tabindex="0" role="region" aria-label="4개 본부 비교표(좌우로 스크롤)">
+        <table id="compare-table"></table>
+      </div>
+    </section>
+    <p id="loading" class="loading">데이터를 불러오는 중…</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p class="update-line">
+        <span id="collected">마지막 수집: -</span>
+        <button type="button" id="refresh" class="refresh">새로고침</button>
+      </p>
+      <p class="source">
+        출처: 한국수력원자력(주) 「원자력발전소 실시간 온배수 현황」, 공공데이터포털(data.go.kr).
+      </p>
+      <p class="note">
+        수치는 원천 데이터를 가공하지 않고 표시합니다. 온도차는 이 화면에서 배수구 수온에서 취수구 수온을 뺀 값입니다.
+        항목별 시각은 한국표준시(KST)이며, 시각이 60분 넘게 갱신되지 않은 항목은 값을 표시하지 않습니다.
+      </p>
+    </div>
+  </footer>
+
+  <script src="logic.js"></script>
+  <script src="chart.js"></script>
+  <script src="trend.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
