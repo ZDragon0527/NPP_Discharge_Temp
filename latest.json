@@ -3,8 +3,8 @@
     "WS": {
       "name": "월성",
       "fetched_at_utc": "2026-11-05T14:00:37Z",
-      "error": null,
-      "status": "stale",
+      "error": "연결 실패: timed out",
+      "status": "error",
       "items": [
         {
           "expl": "취수구-수온",
@@ -43,8 +43,8 @@
     "KR": {
       "name": "고리",
       "fetched_at_utc": "2026-11-05T14:00:37Z",
-      "error": null,
-      "status": "stale",
+      "error": "연결 실패: timed out",
+      "status": "error",
       "items": [
         {
           "expl": "취수구-수온",
@@ -83,8 +83,8 @@
     "YK": {
       "name": "한빛",
       "fetched_at_utc": "2026-11-05T14:00:37Z",
-      "error": null,
-      "status": "ok",
+      "error": "연결 실패: timed out",
+      "status": "error",
       "items": [
         {
           "expl": "취수구-수온",
@@ -123,8 +123,8 @@
     "UJ": {
       "name": "한울",
       "fetched_at_utc": "2026-11-05T14:00:37Z",
-      "error": null,
-      "status": "ok",
+      "error": "연결 실패: timed out",
+      "status": "error",
       "items": [
         {
           "expl": "취수구-수온",
@@ -161,6 +161,6 @@
       ]
     }
   },
-  "updated_at_utc": "2026-11-05T14:00:37Z",
+  "updated_at_utc": "2026-11-05T14:10:19Z",
   "stale_after_minutes": 60
 }
