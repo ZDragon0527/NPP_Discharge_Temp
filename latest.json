@@ -2,30 +2,30 @@
   "plants": {
     "WS": {
       "name": "월성",
-      "fetched_at_utc": "2026-11-07T01:10:38Z",
+      "fetched_at_utc": "2026-11-07T01:20:15Z",
       "error": null,
       "status": "ok",
       "items": [
         {
           "expl": "취수구-수온",
           "name": "2200-RM001",
-          "time": "2026-11-07 10:00",
-          "value": "18.0",
+          "time": "2026-11-07 10:10",
+          "value": "18.1",
           "age_minutes": 10,
           "stale": false
         },
         {
           "expl": "취수구-염분",
           "name": "2200-RM002",
-          "time": "2026-11-07 10:00",
-          "value": "29.2",
+          "time": "2026-11-07 10:10",
+          "value": "29.3",
           "age_minutes": 10,
           "stale": false
         },
         {
           "expl": "배수구-수온",
           "name": "2220-RM005",
-          "time": "2026-11-07 10:00",
+          "time": "2026-11-07 10:10",
           "value": "21.7",
           "age_minutes": 10,
           "stale": false
@@ -33,7 +33,7 @@
         {
           "expl": "배수구-염분",
           "name": "2220-RM006",
-          "time": "2026-11-07 10:00",
+          "time": "2026-11-07 10:10",
           "value": "31.7",
           "age_minutes": 10,
           "stale": false
@@ -42,7 +42,7 @@
     },
     "KR": {
       "name": "고리",
-      "fetched_at_utc": "2026-11-07T01:10:38Z",
+      "fetched_at_utc": "2026-11-07T01:20:15Z",
       "error": null,
       "status": "stale",
       "items": [
@@ -51,7 +51,7 @@
           "name": "2100-RM001",
           "time": "2026-07-07 10:19",
           "value": "0",
-          "age_minutes": 177111,
+          "age_minutes": 177121,
           "stale": true
         },
         {
@@ -59,7 +59,7 @@
           "name": "2100-RM002",
           "time": "2026-07-07 10:19",
           "value": "0",
-          "age_minutes": 177111,
+          "age_minutes": 177121,
           "stale": true
         },
         {
@@ -67,7 +67,7 @@
           "name": "2100-RM005",
           "time": "2026-07-07 10:19",
           "value": "0",
-          "age_minutes": 177111,
+          "age_minutes": 177121,
           "stale": true
         },
         {
@@ -75,21 +75,21 @@
           "name": "2100-RM006",
           "time": "2026-07-07 10:19",
           "value": "0",
-          "age_minutes": 177111,
+          "age_minutes": 177121,
           "stale": true
         }
       ]
     },
     "YK": {
       "name": "한빛",
-      "fetched_at_utc": "2026-11-07T01:10:38Z",
+      "fetched_at_utc": "2026-11-07T01:20:15Z",
       "error": null,
       "status": "ok",
       "items": [
         {
           "expl": "취수구-수온",
           "name": "2300-RM001",
-          "time": "2026-11-07 10:00",
+          "time": "2026-11-07 10:10",
           "value": "15.6",
           "age_minutes": 10,
           "stale": false
@@ -97,7 +97,7 @@
         {
           "expl": "취수구-염분",
           "name": "2300-RM002",
-          "time": "2026-11-07 09:55",
+          "time": "2026-11-07 10:05",
           "value": "32.6",
           "age_minutes": 15,
           "stale": false
@@ -105,15 +105,15 @@
         {
           "expl": "배수구-수온",
           "name": "2300-RM005",
-          "time": "2026-11-07 10:00",
-          "value": "21.8",
+          "time": "2026-11-07 10:10",
+          "value": "21.9",
           "age_minutes": 10,
           "stale": false
         },
         {
           "expl": "배수구-염분",
           "name": "2300-RM006",
-          "time": "2026-11-07 10:00",
+          "time": "2026-11-07 10:10",
           "value": "32.6",
           "age_minutes": 10,
           "stale": false
@@ -122,45 +122,45 @@
     },
     "UJ": {
       "name": "한울",
-      "fetched_at_utc": "2026-11-07T01:10:38Z",
+      "fetched_at_utc": "2026-11-07T01:20:15Z",
       "error": null,
       "status": "ok",
       "items": [
         {
           "expl": "취수구-수온",
           "name": "2400-RM001",
-          "time": "2026-11-07 10:10",
+          "time": "2026-11-07 10:19",
           "value": "17.9",
-          "age_minutes": 0,
+          "age_minutes": 1,
           "stale": false
         },
         {
           "expl": "취수구-염분",
           "name": "2400-RM002",
-          "time": "2026-11-07 10:10",
-          "value": "25.4",
-          "age_minutes": 0,
+          "time": "2026-11-07 10:19",
+          "value": "25.3",
+          "age_minutes": 1,
           "stale": false
         },
         {
           "expl": "배수구-수온",
           "name": "2400-RM005",
-          "time": "2026-11-07 10:10",
+          "time": "2026-11-07 10:19",
           "value": "25.4",
-          "age_minutes": 0,
+          "age_minutes": 1,
           "stale": false
         },
         {
           "expl": "배수구-염분",
           "name": "2400-RM006",
-          "time": "2026-11-07 10:10",
-          "value": "29.5",
-          "age_minutes": 0,
+          "time": "2026-11-07 10:19",
+          "value": "29.6",
+          "age_minutes": 1,
           "stale": false
         }
       ]
     }
   },
-  "updated_at_utc": "2026-11-07T01:10:38Z",
+  "updated_at_utc": "2026-11-07T01:20:15Z",
   "stale_after_minutes": 60
 }
