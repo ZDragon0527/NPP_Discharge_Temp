@@ -1,0 +1,22 @@
+name: Probe stale
+
+# 수동 실행 전용(Actions 탭 → Probe stale → Run workflow).
+# API 가 옛 시각을 돌려줄 때, 호출 방식을 바꿔 보며 원천 문제인지 게이트웨이 캐시인지 가른다.
+# 호출은 본부당 5회, 총 20회 정도로 일일 한도(10,000회)에 영향이 없다.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Probe
+        env:
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: python3 scripts/probe_stale.py
