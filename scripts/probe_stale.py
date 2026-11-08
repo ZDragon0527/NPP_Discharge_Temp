@@ -105,14 +105,21 @@ def probe_plant(key, secrets, code, fetch_fn=fetch, sleep=time.sleep):
 
 
 def verdict(results):
-    """(판정 코드, 설명). 코드: cache | source | error."""
-    ok = [(l, r) for l, r in results if r["status"] == 200 and r["code"] == "00" and r["newest"] != "-"]
+    """(판정 코드, 설명). 코드: cache | updated | source | error.
+    기준(A)과 같은 주소 재호출(E)이 마지막에 있으므로, E 도 최신이 되었다면 시험 도중 새 값이 도착한 것(자연 갱신)이다.
+    캐시로 보려면 호출 방식을 바꾼 변형(B, C, D)이 A 와 E 중 더 최근 값보다도 최근 시각을 줘야 한다."""
+    ok = {l: r for l, r in results if r["status"] == 200 and r["code"] == "00" and r["newest"] != "-"}
     if len(ok) < 2:
         return "error", "비교할 정상 응답이 부족함"
-    base = dict(ok)[ "A 기준" ] if "A 기준" in dict(ok) else ok[0][1]
-    fresher = [(l, r["newest"]) for l, r in ok if r["newest"] > base["newest"]]
+    base = ok.get("A 기준") or next(iter(ok.values()))
+    repeat = ok.get("E 기준 재호출")
+    ref = max(base["newest"], repeat["newest"]) if repeat else base["newest"]
+    fresher = [(l, r["newest"]) for l, r in ok.items() if l != "E 기준 재호출" and r["newest"] > ref]
     if fresher:
-        return "cache", "기준보다 최근 시각을 준 변형: " + ", ".join(f"{l}={t}" for l, t in fresher)
+        return "cache", "기준·재호출보다 최근 시각을 준 변형: " + ", ".join(f"{l}={t}" for l, t in fresher)
+    if repeat and repeat["newest"] > base["newest"]:
+        return "updated", (f"시험 도중 새 값 도착({base['newest']} → {repeat['newest']}). 같은 주소로 다시 불러도 최신이 나오므로 "
+                           "캐시가 아님(단, 캐시 TTL 만료와는 구분 불가)")
     return "source", f"모든 변형이 같은 최신 시각({base['newest']})"
 
 
@@ -135,7 +142,8 @@ def main():
         if base_headers:
             print("  응답 헤더(기준):", "; ".join(f"{k}={v}" for k, v in base_headers.items()))
         kind, text = verdict(results)
-        label = {"cache": "캐시 의심", "source": "원천 쪽(변형과 무관)", "error": "판정 불가"}[kind]
+        label = {"cache": "캐시 의심", "updated": "시험 중 새 값 도착(캐시 아님)",
+                 "source": "원천 쪽(변형과 무관)", "error": "판정 불가"}[kind]
         print(f"  판정: {label} - {text}")
         rows.append((name, code, results[0][1]["newest"], label, text))
     path = os.environ.get("GITHUB_STEP_SUMMARY")

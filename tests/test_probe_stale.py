@@ -37,6 +37,22 @@ class ProbeTest(unittest.TestCase):
         self.assertEqual(kind, "cache")
         self.assertIn("C _=타임스탬프=2026-11-08 17:00", text)
 
+    def test_verdict_updated_when_repeat_call_is_also_fresher(self):
+        """한빛 17:07 실제 사례: A,B 는 16:55, D,E 는 17:00 → 시험 도중 새 값이 도착한 것이지 캐시가 아니다."""
+        rs = [("A 기준", result("2026-11-08 16:55")), ("B numOfRows=9", result("2026-11-08 16:55")),
+              ("D no-cache 헤더", result("2026-11-08 17:00")), ("E 기준 재호출", result("2026-11-08 17:00"))]
+        kind, text = probe_stale.verdict(rs)
+        self.assertEqual(kind, "updated")
+        self.assertIn("16:55 → 2026-11-08 17:00", text.replace("2026-11-08 16:55", "16:55"))
+
+    def test_verdict_cache_requires_fresher_than_repeat_call(self):
+        rs = [("A 기준", result("2026-11-08 16:55")), ("D no-cache 헤더", result("2026-11-08 17:00")),
+              ("C _=타임스탬프", result("2026-11-08 17:05")), ("E 기준 재호출", result("2026-11-08 17:00"))]
+        kind, text = probe_stale.verdict(rs)
+        self.assertEqual(kind, "cache")
+        self.assertIn("C _=타임스탬프=2026-11-08 17:05", text)
+        self.assertNotIn("D no-cache", text)    # E 와 같은 값은 근거로 보지 않는다
+
     def test_verdict_error_when_not_enough_ok_responses(self):
         rs = [("A 기준", result("2026-11-07 13:00")), ("B", result("-", status=0, code="-"))]
         self.assertEqual(probe_stale.verdict(rs)[0], "error")

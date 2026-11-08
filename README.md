@@ -43,9 +43,15 @@ scripts/build_site.py ──▶ site/ (web/ + latest.json + history.json) ──
 | `scripts/build_site.py` | 배포용 사이트와 추이용 `history.json`(최근 30일) 생성 |
 | `scripts/make_icons.js` | 앱 아이콘(PNG) 생성기(Playwright 필요, 아이콘을 바꿀 때만 실행) |
 | `scripts/verify_api.py` | API 응답 형식 확인용 수동 실행 스크립트 |
+| `scripts/verify_live.py` | 배포 직후 공개 사이트가 실제로 갱신됐는지 확인(12분 넘게 뒤처지면 실행 실패로 알림) |
+| `scripts/probe_stale.py` | 수신 중단 진단용 수동 스크립트(`Probe stale` 워크플로) |
 | `.github/workflows/collect.yml` | 수집(10분 주기) 후 선택적으로 Pages 배포 |
 | `.github/workflows/verify-api.yml` | API 확인용 수동 워크플로 |
 | `tests/` | 단위 테스트(Python·Node)와 실제 응답을 바탕으로 한 픽스처 |
+
+## 수신 중단 진단
+
+API 가 오류 없이 **옛 시각의 값**을 돌려주는 경우가 있습니다(예: 한울 2026-11-07 13:00 이후, 고리 2026-07-07 이후). 수집기는 모든 항목이 멈춘 본부를 발견하면(최근 7일 이내) 호출 주소·헤더를 바꾼 요청으로 한 번 더 조회해, 원천 쪽 정지인지 중간 캐시인지 판정하고 `latest.json`의 `probe`와 실행 로그(`[진단]`)에 남깁니다. 같은 상태의 진단은 60분간 재사용합니다. 수동으로 확인하려면 Actions 탭의 `Probe stale`을 실행하세요.
 
 ## 설정
 

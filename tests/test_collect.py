@@ -159,5 +159,147 @@ class CollectTest(unittest.TestCase):
             self.assertTrue(any(r["name"] == "2220-RM006" and r["value"] == "" for r in rows))
 
 
+class ProbeTest(unittest.TestCase):
+    """멈춘 본부의 자동 진단(원천 문제인지 캐시인지)."""
+    FRESH = "2026-11-04 14:40"
+    STALE = "2026-11-03 13:00"      # NOW(11-04 14:41 KST) 기준 약 26시간 전 → 모든 항목 stale, 7일 이내
+    TOO_OLD = "2026-07-07 10:19"    # 7일 초과
+
+    def fetcher(self, stale_plants=(), stale_time=None):
+        stale_time = stale_time or self.STALE
+
+        def f(key, plant, secrets):
+            return WS_XML.format(t=stale_time if plant in stale_plants else self.FRESH, v="1.0")
+        return f
+
+    def run_with_probe(self, out, probe, now=NOW, fetcher=None):
+        return collect.run("TESTKEY+a/b==", out, fetcher=fetcher or self.fetcher(("UJ",)), sleep=lambda s: None,
+                           now=now, probe_fetcher=probe)
+
+    def latest(self, out):
+        with open(os.path.join(out, "latest.json"), encoding="utf-8") as f:
+            return json.load(f)
+
+    def test_probe_verdict_cases(self):
+        v = collect.probe_verdict
+        old, new = "2026-11-03 13:00", "2026-11-04 14:00"
+        self.assertEqual(v(old, {"B numOfRows=9": old, "C _=타임스탬프": old, "D no-cache 헤더": old, "E 기준 재호출": old}), "source")
+        self.assertEqual(v(old, {"B numOfRows=9": old, "C _=타임스탬프": new, "D no-cache 헤더": old, "E 기준 재호출": old}), "cache")
+        # 시험 도중 새 값 도착: D, E 가 최신이어도 E(같은 주소)가 같이 최신이면 캐시가 아니다
+        self.assertEqual(v(old, {"B numOfRows=9": old, "C _=타임스탬프": old, "D no-cache 헤더": new, "E 기준 재호출": new}), "updated")
+        self.assertEqual(v(old, {"B numOfRows=9": None, "E 기준 재호출": None}), "error")
+
+    def test_source_verdict_is_recorded_with_all_variants(self):
+        calls = []
+
+        def probe(key, code, secrets, extra, headers):
+            calls.append((code, extra, headers))
+            return WS_XML.format(t=self.STALE, v="1.0")
+        with tempfile.TemporaryDirectory() as out:
+            new, errors = self.run_with_probe(out, probe)
+            self.assertEqual(errors, {})
+            p = self.latest(out)["plants"]["UJ"]["probe"]
+            self.assertEqual(p["verdict"], "source")
+            self.assertEqual(p["baseline"], self.STALE)
+            self.assertEqual(sorted(p["variants"]), ["B numOfRows=9", "C _=타임스탬프", "D no-cache 헤더", "E 기준 재호출"])
+            self.assertEqual(p["checked_at_utc"], "2026-11-04T05:41:00Z")
+        # 변형이 실제로 다르게 호출됐는지: 모두 UJ, B 는 numOfRows, C 는 알 수 없는 파라미터, D 는 no-cache 헤더, E 는 기준과 같음
+        self.assertEqual([c[0] for c in calls], ["UJ"] * 4)
+        self.assertEqual(calls[0][1], {"numOfRows": "9"})
+        self.assertIn("_", calls[1][1])
+        self.assertEqual(calls[2][2], {"Cache-Control": "no-cache", "Pragma": "no-cache"})
+        self.assertEqual((calls[3][1], calls[3][2]), ({}, None))
+
+    def test_cache_verdict_when_changed_url_returns_fresher_value(self):
+        def probe(key, code, secrets, extra, headers):
+            return WS_XML.format(t=self.FRESH if "_" in extra else self.STALE, v="1.0")
+        with tempfile.TemporaryDirectory() as out:
+            self.run_with_probe(out, probe)
+            self.assertEqual(self.latest(out)["plants"]["UJ"]["probe"]["verdict"], "cache")
+
+    def test_updated_verdict_when_repeat_call_also_returns_new_value(self):
+        def probe(key, code, secrets, extra, headers):
+            is_late = headers is not None or (extra == {} and headers is None)   # D, E (시험 도중 새 값 도착)
+            return WS_XML.format(t=self.FRESH if is_late else self.STALE, v="1.0")
+        with tempfile.TemporaryDirectory() as out:
+            self.run_with_probe(out, probe)
+            self.assertEqual(self.latest(out)["plants"]["UJ"]["probe"]["verdict"], "updated")
+
+    def test_probe_result_is_reused_for_60_minutes_then_refreshed(self):
+        calls = []
+
+        def probe(key, code, secrets, extra, headers):
+            calls.append(code)
+            return WS_XML.format(t=self.STALE, v="1.0")
+        # 시간이 지나도 다른 본부는 계속 수신 중인 상황: 그 본부들의 값은 매 회차 새로 갱신된다고 가정한다
+        def later(key, plant, secrets):
+            return WS_XML.format(t=self.STALE if plant == "UJ" else "2026-11-04 15:30", v="1.0")
+
+        with tempfile.TemporaryDirectory() as out:
+            self.run_with_probe(out, probe, now=NOW)
+            self.assertEqual(len(calls), 4)
+            first = self.latest(out)["plants"]["UJ"]["probe"]["checked_at_utc"]
+            self.run_with_probe(out, probe, now=NOW + dt.timedelta(minutes=10), fetcher=later)
+            self.run_with_probe(out, probe, now=NOW + dt.timedelta(minutes=59), fetcher=later)
+            self.assertEqual(len(calls), 4, "60분 안에는 다시 호출하지 않는다")
+            self.assertEqual(self.latest(out)["plants"]["UJ"]["probe"]["checked_at_utc"], first)
+            self.run_with_probe(out, probe, now=NOW + dt.timedelta(minutes=61), fetcher=later)
+            self.assertEqual(len(calls), 8, "60분이 지나면 다시 진단한다")
+
+    def test_probe_not_reused_when_state_changed(self):
+        calls = []
+
+        def probe(key, code, secrets, extra, headers):
+            calls.append(code)
+            return WS_XML.format(t=self.STALE, v="1.0")
+        with tempfile.TemporaryDirectory() as out:
+            self.run_with_probe(out, probe, now=NOW)
+            # 최신 시각이 달라지면(새 값 후 다시 멈춤) 이전 진단을 재사용하지 않는다
+            self.run_with_probe(out, probe, now=NOW + dt.timedelta(minutes=10),
+                                fetcher=self.fetcher(("UJ",), stale_time="2026-11-03 14:00"))
+            self.assertEqual(len(calls), 8)
+
+    def test_healthy_plants_are_never_probed_and_probe_is_cleared(self):
+        calls = []
+
+        def probe(key, code, secrets, extra, headers):
+            calls.append(code)
+            return WS_XML.format(t=self.STALE, v="1.0")
+        with tempfile.TemporaryDirectory() as out:
+            self.run_with_probe(out, probe, fetcher=self.fetcher(()))
+            self.assertEqual(calls, [])
+            latest = self.latest(out)["plants"]
+            self.assertTrue(all("probe" not in v for v in latest.values()))
+            # 멈췄다가 회복하면 이전 진단 기록이 남지 않는다
+            self.run_with_probe(out, probe)
+            self.assertIn("probe", self.latest(out)["plants"]["UJ"])
+            self.run_with_probe(out, probe, now=NOW + dt.timedelta(minutes=10), fetcher=self.fetcher(()))
+            self.assertNotIn("probe", self.latest(out)["plants"]["UJ"])
+
+    def test_long_term_stale_plant_is_not_probed(self):
+        calls = []
+
+        def probe(key, code, secrets, extra, headers):
+            calls.append(code)
+            return WS_XML.format(t=self.TOO_OLD, v="1.0")
+        with tempfile.TemporaryDirectory() as out:
+            self.run_with_probe(out, probe, fetcher=self.fetcher(("KR",), stale_time=self.TOO_OLD))
+            self.assertEqual(calls, [])
+            self.assertNotIn("probe", self.latest(out)["plants"]["KR"])
+
+    def test_probe_failures_do_not_break_collection(self):
+        def probe(key, code, secrets, extra, headers):
+            raise RuntimeError("HTTP 500")
+        with tempfile.TemporaryDirectory() as out:
+            new, errors = self.run_with_probe(out, probe)
+            self.assertEqual(errors, {})                     # 수집 실패로 취급하지 않는다
+            self.assertEqual(self.latest(out)["plants"]["UJ"]["probe"]["verdict"], "error")
+
+    def test_no_probe_without_probe_fetcher(self):
+        with tempfile.TemporaryDirectory() as out:
+            collect.run("TESTKEY+a/b==", out, fetcher=self.fetcher(("UJ",)), sleep=lambda s: None, now=NOW)
+            self.assertNotIn("probe", self.latest(out)["plants"]["UJ"])
+
+
 if __name__ == "__main__":
     unittest.main()
