@@ -302,7 +302,7 @@
       h('th', { scope: 'col', text: '온도차(°C)' }),
       h('th', { scope: 'col', text: '취수구 염분' }),
       h('th', { scope: 'col', text: '배수구 염분' }),
-      h('th', { scope: 'col', class: 'status-h', text: '최근 항목 시각' })));
+      h('th', { scope: 'col', class: 'status-h', text: '최근 항목 시각' }))));
     var body = h('tbody');
     vs.forEach(function (v) {
       var when = v.lastReceived ? L.formatTime(v.lastReceived, now) : '-';

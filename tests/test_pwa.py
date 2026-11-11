@@ -105,5 +105,20 @@ class PwaTest(unittest.TestCase):
                 self.assertTrue(os.path.isfile(os.path.join(out, name)), name)
 
 
+class WebScriptSyntaxTest(unittest.TestCase):
+    """화면 스크립트에 문법 오류가 있으면 화면 전체가 '불러오는 중'에 멈춘다(2026-11-11 괄호 누락 사고)."""
+
+    def test_all_web_js_parse(self):
+        import glob
+        import shutil
+        import subprocess
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node 없음")
+        for path in sorted(glob.glob(os.path.join(WEB, "*.js"))):
+            r = subprocess.run([node, "--check", path], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, f"{os.path.basename(path)}: {r.stderr}")
+
+
 if __name__ == "__main__":
     unittest.main()
