@@ -30,22 +30,28 @@ HTTPS 주소(GitHub Pages)에서만 설치할 수 있습니다. 값과 화면 �
 공공데이터포털 API
       │  10분마다 호출 (GitHub Actions: collect.yml)
       ▼
-scripts/collect.py ──▶ data 브랜치: data/YYYY-MM-DD.csv (누적 이력), latest.json (최신값)
-      │
-      ▼
-scripts/build_site.py ──▶ site/ (web/ + latest.json + history.json) ──▶ GitHub Pages
+scripts/collect.py ──▶ scripts/history.py ──▶ 안전 검사 ──▶ data 브랜치(매번 커밋 1개로 덮어씀)
+                                                   data/YYYY-MM-DD.csv (누적 이력), latest.json, history.json
+                                                        │ raw.githubusercontent.com
+                                                        ▼
+web/ ──(화면 코드가 바뀔 때만)──▶ GitHub Pages ──▶ 브라우저가 위 data 파일을 직접 읽음
 ```
+
+화면(Pages)과 측정 데이터(data 브랜치)를 분리했습니다. 10분마다 같은 커밋으로 Pages 를 다시 배포하면 배포가 "성공"으로 끝나고도 사이트가 갱신되지 않는 일이 반복돼(2026-11-05, 11-10) 값이 오래된 채로 보였기 때문입니다.
 
 | 경로 | 설명 |
 |---|---|
 | `web/` | 정적 화면(빌드 도구·외부 라이브러리 없음). `logic.js`(순수 함수), `chart.js`(SVG 차트), `trend.js`(추이 영역), `app.js`(화면), `sw.js`·`manifest.webmanifest`·`icons/`(설치형 웹앱) |
 | `scripts/collect.py` | 4개 본부 수집기. 중복 행과 오래된 값은 이력에 저장하지 않음 |
-| `scripts/build_site.py` | 배포용 사이트와 추이용 `history.json`(최근 30일) 생성 |
+| `scripts/history.py` | 추이용 `history.json`(원본 48시간 + 1시간 평균 30일) 생성, 오래된 CSV(120일 초과) 정리 |
+| `scripts/check_data_dir.py` | data 브랜치를 덮어쓰기 전 안전 검사(CSV 행 수가 줄었는지, JSON 이 올바른지) |
+| `scripts/build_site.py` | 배포용 사이트(`web/` 복사) 생성. 측정 데이터는 포함하지 않음 |
 | `scripts/make_icons.js` | 앱 아이콘(PNG) 생성기(Playwright 필요, 아이콘을 바꿀 때만 실행) |
 | `scripts/verify_api.py` | API 응답 형식 확인용 수동 실행 스크립트 |
-| `scripts/verify_live.py` | 배포 직후 공개 사이트가 실제로 갱신됐는지 확인(12분 넘게 뒤처지면 실행 실패로 알림) |
+| `scripts/verify_live.py` | 화면 배포 직후 공개 사이트의 `sw.js` 가 배포본과 같아질 때까지 확인(150초 안에 안 되면 실행 실패로 알림) |
 | `scripts/probe_stale.py` | 수신 중단 진단용 수동 스크립트(`Probe stale` 워크플로) |
-| `.github/workflows/collect.yml` | 수집(10분 주기) 후 선택적으로 Pages 배포 |
+| `.github/workflows/collect.yml` | 수집(10분 주기) → 이력 생성 → 안전 검사 → data 브랜치 게시 |
+| `.github/workflows/deploy-site.yml` | `web/` 가 바뀔 때만 Pages 배포 후 공개 사이트 확인 |
 | `.github/workflows/verify-api.yml` | API 확인용 수동 워크플로 |
 | `tests/` | 단위 테스트(Python·Node)와 실제 응답을 바탕으로 한 픽스처 |
 
@@ -57,7 +63,7 @@ API 가 오류 없이 **옛 시각의 값**을 돌려주는 경우가 있습니�
 
 1. **인증키:** 공공데이터포털에서 발급받은 **Decoding 인증키**를 저장소 Secret `DATA_GO_KR_SERVICE_KEY`로 등록합니다 (Settings → Secrets and variables → Actions). 키는 코드·이슈·로그에 남기지 마세요.
 2. **수집 주기:** `collect.yml`의 `schedule`은 GitHub 사정으로 지연·누락될 수 있습니다. 안정적인 주기가 필요하면 외부 스케줄러가 `workflow_dispatch` API(`POST /repos/{owner}/{repo}/actions/workflows/collect.yml/dispatches`)를 호출하게 할 수 있습니다. 이때 Actions 쓰기 권한만 가진 저장소 한정 토큰을 쓰고 만료일을 관리하세요.
-3. **Pages 배포:** Settings → Pages → Source를 `GitHub Actions`로 두고, 저장소 변수 `PAGES_ENABLED`를 `true`로 설정하면 수집 직후 자동 배포됩니다.
+3. **Pages 배포:** Settings → Pages → Source를 `GitHub Actions`로 두고, 저장소 변수 `PAGES_ENABLED`를 `true`로 설정하면 `web/` 변경을 푸시할 때 자동 배포됩니다(수집 때는 배포하지 않습니다).
 
 ## 테스트
 
@@ -66,6 +72,6 @@ python3 -I -m unittest discover -s tests   # 수집기·이력 빌드
 node --test tests/logic.test.js            # 화면 로직
 ```
 
-로컬에서 화면을 보려면 `data` 브랜치의 `latest.json`과 `data/*.csv`를 한 폴더에 두고 `python3 scripts/build_site.py --data-dir <폴더> --out site` 실행 후 `python3 -m http.server --directory site`를 사용합니다.
+로컬에서 화면을 보려면 `python3 scripts/build_site.py --out site` 후 `python3 -m http.server --directory site` 를 실행합니다. 데이터는 기본적으로 `data` 브랜치(raw 주소)에서 읽으며, 다른 주소를 쓰려면 페이지 로드 전에 `window.NPP_DATA_BASE` 를 지정합니다.
 
 `tests/synthetic_history.py`는 화면 점검용 합성 이력 생성기이며 실제 데이터가 아닙니다.

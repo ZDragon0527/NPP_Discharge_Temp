@@ -1,8 +1,12 @@
 name: Collect
 
-# 10분마다 4개 본부의 온배수 현황을 수집해 data 브랜치에 누적한다.
-# - schedule 은 기본 브랜치의 워크플로만 실행된다(최소 5분, 최선 노력이라 지연·누락 가능).
-# - 지연이 심하면 cron-job.org 등 외부 스케줄러가 workflow_dispatch API 를 호출하도록 대체할 수 있다.
+# 10분마다 4개 본부의 온배수 현황을 수집해 data 브랜치에 게시한다.
+# - 화면(GitHub Pages)과 측정 데이터를 분리했다. 화면은 data 브랜치의 latest.json·history.json 을
+#   raw.githubusercontent.com 에서 직접 읽는다. Pages 배포는 화면 코드가 바뀔 때만 한다(deploy-site.yml).
+#   (같은 커밋으로 10분마다 Pages 를 다시 배포하면 "성공"으로 끝나고도 사이트가 갱신되지 않는 일이 반복됐다.)
+# - data 브랜치는 매번 커밋 1개로 덮어쓴다(force push). 누적 이력은 파일(data/*.csv)로 남기므로 사라지지 않는다.
+#   덮어쓰기 전에 CSV 행 수가 줄지 않았는지 검사하고, 어긋나면 게시하지 않는다.
+# - schedule 은 지연·누락이 잦아 cron-job.org 가 workflow_dispatch API 를 호출하는 것이 주 실행 경로다.
 on:
   schedule:
     - cron: "*/10 * * * *"
@@ -11,10 +15,13 @@ on:
 permissions:
   contents: write
 
-# 수집이 겹쳐 data 브랜치 push 가 충돌하지 않도록 직렬 실행한다.
+# 수집이 겹쳐 data 브랜치 게시가 충돌하지 않도록 직렬 실행한다.
 concurrency:
   group: collect
   cancel-in-progress: false
+
+env:
+  KEEP_DAYS: "120"   # 이보다 오래된 일별 CSV 는 정리한다
 
 jobs:
   collect:
@@ -23,14 +30,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Prepare data branch
+      # 이전 data 브랜치의 파일만 내려받는다(이력 없이 파일 트리만).
+      - name: Fetch previous data
         run: |
+          mkdir data-out
           if git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
             git fetch --depth=1 origin data
-            git worktree add -B data data-out FETCH_HEAD
-          else
-            git worktree add --orphan -b data data-out
+            git archive FETCH_HEAD | tar -x -C data-out
           fi
+          python3 scripts/check_data_dir.py snapshot --data-dir data-out --out prev-counts.json
 
       - name: Collect
         id: collect
@@ -39,74 +47,31 @@ jobs:
           DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
         run: python3 scripts/collect.py --out data-out
 
-      - name: Commit data
+      - name: Build history
+        run: python3 scripts/history.py --data-dir data-out --prune-days "$KEEP_DAYS"
+
+      # 덮어쓰기 전 안전 검사: latest·history 가 올바른지, 보존 기간 안의 CSV 가 줄지 않았는지.
+      - name: Verify before publish
+        run: python3 scripts/check_data_dir.py verify --data-dir data-out --prev prev-counts.json --keep-days "$KEEP_DAYS"
+
+      - name: Publish data branch
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          [ -d data-out ] || exit 0
           cd data-out
+          git init -q -b data
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          if git diff --cached --quiet; then
-            echo "변경 없음"
-            exit 0
-          fi
-          git commit -m "data: $(date -u +'%Y-%m-%d %H:%M') UTC"
+          git commit -q -m "data: $(date -u +'%Y-%m-%d %H:%M') UTC"
           for i in 1 2 3; do
-            git push origin data && exit 0
-            git pull --rebase origin data
+            git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" data && exit 0
             sleep 3
           done
-          echo "push 실패"
+          echo "::error::data 브랜치 게시 실패"
           exit 1
 
-      # 일부 본부 수집이 실패해도 성공분은 위에서 저장한다. 실패는 여기서 워크플로 실패로 표시해 알림을 받는다.
+      # 일부 본부 수집이 실패해도 성공분은 위에서 게시한다. 실패는 여기서 워크플로 실패로 표시해 알림을 받는다.
       - name: Fail if collection failed
         if: steps.collect.outcome == 'failure'
         run: exit 1
-
-  # 수집 직후 화면(정적 사이트)을 GitHub Pages 에 배포한다.
-  # 저장소 변수 PAGES_ENABLED=true 일 때만 실행된다. 설정 전(저장소 비공개 등)에는 건너뛰어
-  # 매 10분마다 실패 알림이 오지 않게 한다.
-  #   켜는 방법: ① 저장소를 공개로 전환(무료 Pages 조건)  ② Settings → Pages → Source: GitHub Actions
-  #             ③ Settings → Secrets and variables → Actions → Variables 에 PAGES_ENABLED = true 추가
-  # 수집이 일부 실패해도(collect 실패) 마지막으로 받은 값을 배포한다. 화면이 시각을 보고 오래된 값을 가린다.
-  deploy:
-    needs: collect
-    if: ${{ !cancelled() && vars.PAGES_ENABLED == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Checkout data branch
-        uses: actions/checkout@v5
-        with:
-          ref: data
-          path: data-out
-
-      - name: Build site
-        run: python3 scripts/build_site.py --data-dir data-out --out site
-
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      # 배포 단계가 "성공"이어도 공개 사이트가 실제로 갱신됐는지 다시 읽어 확인한다.
-      # (2026-11-05 GitHub Pages 가 14:40 UTC 배포본에 멈춘 채 약 8시간 동안 성공만 보고된 사고)
-      # 공개 사이트가 이번 배포본보다 12분(CDN 캐시 10분 + 여유) 넘게 뒤처지면 이 단계가 실패해 알림 메일이 온다.
-      # 같은 배포 식별자(커밋 SHA)가 계속 쓰이는 것이 의심되므로, 멈췄을 때는 빈 커밋을 하나 푸시하면 풀릴 수 있다.
-      - name: Verify live site reflects this deployment
-        run: python3 scripts/verify_live.py --url "${{ steps.deployment.outputs.page_url }}" --expected data-out/latest.json

@@ -3,9 +3,15 @@
   'use strict';
 
   var L = window.NPP;
-  var DATA_URL = './data/latest.json';
-  var HISTORY_URL = './data/history.json';
-  var REFETCH_MS = 5 * 60 * 1000;   // 데이터 다시 받기
+  // 측정 데이터는 사이트(Pages)가 아니라 저장소의 data 브랜치에서 읽는다.
+  // Pages 는 같은 커밋으로 반복 배포하면 "성공"으로 끝나고도 사이트에 반영하지 않는 일이 있었다(2026-11-05, 11-10).
+  // raw.githubusercontent.com 은 다른 출처에서도 읽을 수 있고(CORS 허용) CDN 이 최대 5분 캐시한다.
+  // window.NPP_DATA_BASE 는 시험용 재정의(서비스 워커에도 같은 값을 넘긴다).
+  var DATA_BASE = window.NPP_DATA_BASE || 'https://raw.githubusercontent.com/ZDragon0527/NPP_Discharge_Temp/data/';
+  var DATA_URL = DATA_BASE + 'latest.json';
+  var HISTORY_URL = DATA_BASE + 'history.json';
+  var REFETCH_MS = 5 * 60 * 1000;   // 현재 값 다시 받기
+  var HISTORY_REFETCH_MS = 15 * 60 * 1000;   // 이력(수백 KB)은 덜 자주 받는다
   var RERENDER_MS = 60 * 1000;      // 경과 시간 표시 갱신
   var DEFAULT_CODE = 'WS';          // 기본 본부: 월성
   var CODES = L.PLANTS.map(function (p) { return p.code; });
@@ -18,7 +24,7 @@
     nodata:  { label: '데이터 없음',   icon: '■', cls: 'bad' }
   };
 
-  var state = { latest: null, loadError: null, lastFetchMs: 0, history: null, historyError: false };
+  var state = { latest: null, loadError: null, lastFetchMs: 0, history: null, historyError: false, historyFetchedMs: 0, fromCache: false };
   var wide = window.matchMedia('(min-width: 900px)');
 
   function $(id) { return document.getElementById(id); }
@@ -236,7 +242,13 @@
       area.appendChild(h('div', { class: 'notice warn' },
         '오프라인 상태입니다. 마지막으로 저장된 값을 표시하며, 시각이 오래된 값은 "수신 중단"으로 표시됩니다.'));
     }
-    if (state.latest) {
+    if (state.fromCache && navigator.onLine !== false) {
+      // 서비스 워커가 네트워크 대신 저장본을 돌려준 경우: 수집이 아니라 이 기기의 연결이 문제다.
+      area.appendChild(h('div', { class: 'notice warn' },
+        '네트워크 연결이 불안정해 이 기기에 저장된 값을 표시하고 있습니다. 연결을 확인한 뒤 새로고침해 주세요. ' +
+        '시각이 오래된 값은 "수신 중단"으로 표시됩니다.'));
+    }
+    if (state.latest && !state.fromCache) {
       var c = L.collectorStatus(state.latest, now);
       if (c.delayed) {
         area.appendChild(h('div', { class: 'notice warn' }, c.known
@@ -289,21 +301,24 @@
   }
 
   /* ---- 데이터 로드 ---- */
-  function loadHistory() {
-    return fetch(HISTORY_URL + '?t=' + Date.now(), { cache: 'no-store' })
+  function loadHistory(force) {
+    if (!force && state.history && Date.now() - state.historyFetchedMs < HISTORY_REFETCH_MS) return Promise.resolve();
+    return fetch(HISTORY_URL, { cache: 'no-store' })
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       })
-      .then(function (json) { state.history = json; state.historyError = false; })
+      .then(function (json) { state.history = json; state.historyError = false; state.historyFetchedMs = Date.now(); })
       .catch(function () { state.historyError = !state.history; });   // 이전에 받은 이력이 있으면 계속 사용
   }
 
-  function load() {
-    var historyDone = loadHistory();
-    return fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' })
+  // forceHistory === true 이면 이력도 즉시 다시 받는다(새로고침 버튼).
+  function load(forceHistory) {
+    var historyDone = loadHistory(forceHistory === true);
+    return fetch(DATA_URL, { cache: 'no-store' })
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
+        state.fromCache = res.headers.get('X-NPP-From-Cache') === '1';   // 서비스 워커가 저장본을 돌려줬는지
         return res.json();
       })
       .then(function (json) {
@@ -320,7 +335,7 @@
 
   window.addEventListener('hashchange', render);
   if (wide.addEventListener) wide.addEventListener('change', render);
-  $('refresh').addEventListener('click', load);
+  $('refresh').addEventListener('click', function () { load(true); });
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden && Date.now() - state.lastFetchMs > 2 * 60 * 1000) load();
   });
@@ -370,10 +385,11 @@
 
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('./sw.js').catch(function () { /* 설치형 기능만 빠질 뿐 화면은 정상 동작 */ });
+      navigator.serviceWorker.register('./sw.js?data=' + encodeURIComponent(DATA_BASE))
+        .catch(function () { /* 설치형 기능만 빠질 뿐 화면은 정상 동작 */ });
     });
   }
-  window.addEventListener('online', function () { load(); });
+  window.addEventListener('online', function () { load(true); });
   window.addEventListener('offline', render);
 
   setInterval(load, REFETCH_MS);

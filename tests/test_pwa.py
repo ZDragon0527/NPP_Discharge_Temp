@@ -91,17 +91,15 @@ class PwaTest(unittest.TestCase):
         sw = read("sw.js")
         self.assertIn("CACHE_PREFIX = 'npp-discharge-'", sw)
         self.assertRegex(sw, r"k\.indexOf\(CACHE_PREFIX\) === 0")
-        self.assertIn("url.origin !== self.location.origin", sw)   # 외부 요청은 가로채지 않음
+        self.assertIn("url.origin !== self.location.origin && !isData", sw)   # 데이터 주소 말고 외부 요청은 가로채지 않음
+        self.assertIn("raw.githubusercontent.com", sw)
+        self.assertIn("X-NPP-From-Cache", sw)
         self.assertIn("request.method !== 'GET'", sw)
 
     def test_build_includes_pwa_files(self):
         with tempfile.TemporaryDirectory() as tmp:
-            data = os.path.join(tmp, "data")
-            os.makedirs(data)
-            with open(os.path.join(data, "latest.json"), "w") as f:
-                f.write("{}")
             out = os.path.join(tmp, "site")
-            build_site.build(data, out)
+            build_site.build(out)
             for name in ("manifest.webmanifest", "sw.js", "icons/icon-192.png", "icons/icon-512.png",
                          "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/icon.svg"):
                 self.assertTrue(os.path.isfile(os.path.join(out, name)), name)

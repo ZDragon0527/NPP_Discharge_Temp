@@ -1,0 +1,50 @@
+name: Deploy site
+
+# 화면 코드(web/)가 바뀔 때만 GitHub Pages 에 배포한다. 측정 데이터는 포함하지 않는다(collect.yml 이 data 브랜치로 게시).
+# 저장소 변수 PAGES_ENABLED=true 일 때만 배포한다.
+#   켜는 방법: ① 저장소 공개  ② Settings → Pages → Source: GitHub Actions  ③ Variables 에 PAGES_ENABLED = true
+on:
+  push:
+    paths:
+      - "web/**"
+      - "scripts/build_site.py"
+      - "scripts/verify_live.py"
+      - ".github/workflows/deploy-site.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ vars.PAGES_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build site
+        run: python3 scripts/build_site.py --out site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      # 배포가 "성공"이어도 공개 사이트가 실제로 갱신됐는지 sw.js 내용을 다시 읽어 확인한다.
+      # 어긋나면 화면 코드와 무관한 빈 커밋 하나로 배포 식별자를 바꾸면 풀린 적이 있다.
+      - name: Verify live site reflects this deployment
+        run: python3 scripts/verify_live.py --url "${{ steps.deployment.outputs.page_url }}" --path sw.js --expected site/sw.js
