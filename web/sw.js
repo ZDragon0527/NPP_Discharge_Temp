@@ -13,7 +13,7 @@
  */
 'use strict';
 
-var CACHE = 'npp-discharge-v2';
+var CACHE = 'npp-discharge-v3';
 var CACHE_PREFIX = 'npp-discharge-';
 var NETWORK_TIMEOUT_MS = 4000;
 var DEFAULT_DATA_BASE = 'https://raw.githubusercontent.com/ZDragon0527/NPP_Discharge_Temp/data/';
@@ -70,7 +70,8 @@ function networkFirst(event, request) {
   var key = cacheKey(request);
   return caches.open(CACHE).then(function (cache) {
     return cache.match(key).then(function (cached) {
-      var network = fetch(request).then(function (res) {
+      // 브라우저 HTTP 캐시(Pages 는 10분)가 옛 화면 코드를 돌려주지 않도록 매번 서버에 확인한다.
+      var network = fetch(request.url, { cache: 'no-cache' }).then(function (res) {
         if (res && res.ok && (res.type === 'basic' || res.type === 'cors')) cache.put(key, res.clone());
         return res;
       });

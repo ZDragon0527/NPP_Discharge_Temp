@@ -1,6 +1,7 @@
 /* 화면 렌더링. 판단 문구는 쓰지 않고 수신 상태와 수치만 보여준다. */
 (function () {
   'use strict';
+  window.__nppBooted = true;   // index.html 의 안전장치가 화면 스크립트 실행 여부를 확인한다
 
   var L = window.NPP;
   // 측정 데이터는 사이트(Pages)가 아니라 저장소의 data 브랜치에서 읽는다.

@@ -173,5 +173,28 @@
   <script src="chart.js"></script>
   <script src="trend.js"></script>
   <script src="app.js"></script>
+  <script>
+    /* 안전장치: 화면 스크립트가 실행되지 않으면(옛 코드가 저장된 경우 등) 이 기기의 저장본을 지우고 다시 불러오도록 안내한다. */
+    setTimeout(function () {
+      if (window.__nppBooted) return;
+      var n = document.getElementById('notice');
+      if (!n) return;
+      n.textContent = '';
+      var d = document.createElement('div');
+      d.className = 'notice bad';
+      d.appendChild(document.createTextNode('화면을 불러오지 못했습니다. 아래 버튼으로 저장된 파일을 지우고 다시 불러옵니다. '));
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = '다시 불러오기';
+      b.onclick = function () {
+        var tasks = [];
+        try { if (window.caches) tasks.push(caches.keys().then(function (ks) { return Promise.all(ks.filter(function (k) { return k.indexOf('npp-discharge-') === 0; }).map(function (k) { return caches.delete(k); })); })); } catch (e) {}
+        try { if (navigator.serviceWorker) tasks.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })); } catch (e) {}
+        Promise.all(tasks).then(function () { location.reload(); }, function () { location.reload(); });
+      };
+      d.appendChild(b);
+      n.appendChild(d);
+    }, 8000);
+  </script>
 </body>
 </html>
