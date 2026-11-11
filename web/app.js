@@ -365,8 +365,7 @@
     $('loading').hidden = !!state.latest || !!state.loadError;
     if (!state.latest) {
       renderNotices(now);
-      $('detail').textContent = '';
-      window.NPPTrend.update($('trend'), null);
+            window.NPPTrend.update($('trend'), null);
       $('compare').hidden = true;
       return;
     }
@@ -380,13 +379,11 @@
     renderHero(vs, detailCode || DEFAULT_CODE, now);
     if (detailCode) {
       var dv = vs.filter(function (v) { return v.code === detailCode; })[0];
-      renderDetail(dv, now);
-      window.NPPTrend.update($('trend'), {
+            window.NPPTrend.update($('trend'), {
         code: detailCode, name: dv.name, history: state.history, historyError: state.historyError, now: now
       });
     } else {
-      $('detail').textContent = '';
-      window.NPPTrend.update($('trend'), null);
+            window.NPPTrend.update($('trend'), null);
     }
     renderCompare(vs, detailCode, now);
     renderNotices(now);
