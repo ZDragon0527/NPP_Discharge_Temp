@@ -10,18 +10,25 @@
   var DATA_BASE = window.NPP_DATA_BASE || 'https://raw.githubusercontent.com/ZDragon0527/NPP_Discharge_Temp/data/';
   var DATA_URL = DATA_BASE + 'latest.json';
   var HISTORY_URL = DATA_BASE + 'history.json';
-  var REFETCH_MS = 5 * 60 * 1000;   // 현재 값 다시 받기
+  var REFETCH_MS = 5 * 60 * 1000;    // 현재 값 다시 받기
   var HISTORY_REFETCH_MS = 15 * 60 * 1000;   // 이력(수백 KB)은 덜 자주 받는다
-  var RERENDER_MS = 60 * 1000;      // 경과 시간 표시 갱신
-  var DEFAULT_CODE = 'WS';          // 기본 본부: 월성
+  var RERENDER_MS = 60 * 1000;       // 경과 시간 표시 갱신
+  var DEFAULT_CODE = 'WS';           // 기본 본부: 월성
   var CODES = L.PLANTS.map(function (p) { return p.code; });
 
   var STATUS = {
-    ok:      { label: '수신 중',       icon: '●', cls: 'ok' },
+    ok:      { label: '수신 중',     icon: '•', cls: 'ok' },
     partial: { label: '일부 수신 지연', icon: '▲', cls: 'warn' },
-    stale:   { label: '수신 중단',     icon: '■', cls: 'bad' },
-    error:   { label: '조회 오류',     icon: '▲', cls: 'warn' },
-    nodata:  { label: '데이터 없음',   icon: '■', cls: 'bad' }
+    stale:   { label: '수신 중단',   icon: '■', cls: 'bad' },
+    error:   { label: '조회 오류',   icon: '▲', cls: 'warn' },
+    nodata:  { label: '데이터 없음', icon: '■', cls: 'bad' }
+  };
+
+  var PLANT_REGIONS = {
+    WS: '경상북도 경주시 양남면 일원',
+    KR: '부산광역시 기장군 장안읍 일원',
+    YK: '전라남도 영광군 홍농읍 일원',
+    UJ: '경상북도 울진군 북면 일원'
   };
 
   var state = { latest: null, loadError: null, lastFetchMs: 0, history: null, historyError: false, historyFetchedMs: 0, fromCache: false };
@@ -69,6 +76,89 @@
     return h('span', { class: 'badge ' + s.cls }, h('span', { 'aria-hidden': 'true', text: s.icon }), s.label);
   }
 
+  /* ---- 상단 히어로 배너 및 헤더 상태 배지 ---- */
+  function renderHero(vs, targetCode, now) {
+    var heroEl = $('hero');
+    if (!heroEl) return;
+
+    var code = targetCode && targetCode !== 'ALL' ? targetCode : DEFAULT_CODE;
+    var v = vs.filter(function (it) { return it.code === code; })[0] || vs[0];
+    if (!v) return;
+
+    var st = STATUS[v.status] || STATUS.nodata;
+
+    // 상단 헤더 라이브 상태 배지 동기화
+    var headerBadge = $('header-status-badge');
+    var headerText = $('header-status-text');
+    if (headerBadge && headerText) {
+      var okCount = vs.filter(function (it) { return it.status === 'ok'; }).length;
+      headerBadge.className = 'status-pill ' + (okCount === vs.length ? 'ok' : (okCount > 0 ? 'warn' : 'bad'));
+      headerText.textContent = vs.length + '개 본부 중 ' + okCount + '개소 수신 중';
+    }
+
+    // 히어로 배너 상태 필
+    var heroBadgeWrap = $('hero-badge-wrap');
+    var heroStatusText = $('hero-status-text');
+    if (heroBadgeWrap && heroStatusText) {
+      heroBadgeWrap.className = 'hero-status-pill ' + st.cls;
+      heroStatusText.textContent = v.name + ' 본부 · ' + st.label;
+    }
+
+    var titleEl = $('hero-plant-title');
+    if (titleEl) titleEl.textContent = v.name + ' 원자력발전소 온배수 현황';
+
+    var regionEl = $('hero-plant-region');
+    if (regionEl) regionEl.textContent = PLANT_REGIONS[v.code] || '원자력발전소 주변 해역';
+
+    var inTempItem = v.items.inTemp;
+    var outTempItem = v.items.outTemp;
+    var inSalItem = v.items.inSal;
+    var outSalItem = v.items.outSal;
+
+    var inTempOk = inTempItem && !inTempItem.stale && inTempItem.num !== null;
+    var outTempOk = outTempItem && !outTempItem.stale && outTempItem.num !== null;
+    var inSalOk = inSalItem && !inSalItem.stale && inSalItem.num !== null;
+    var outSalOk = outSalItem && !outSalItem.stale && outSalItem.num !== null;
+
+    var heroInTemp = $('hero-in-temp');
+    if (heroInTemp) heroInTemp.textContent = inTempOk ? L.formatNumber(inTempItem.num) + ' °C' : '-';
+
+    var heroOutTemp = $('hero-out-temp');
+    if (heroOutTemp) heroOutTemp.textContent = outTempOk ? L.formatNumber(outTempItem.num) + ' °C' : '-';
+
+    var heroSalPair = $('hero-sal-pair');
+    if (heroSalPair) {
+      var sIn = inSalOk ? L.formatNumber(inSalItem.num) : '-';
+      var sOut = outSalOk ? L.formatNumber(outSalItem.num) : '-';
+      heroSalPair.textContent = sIn + ' / ' + sOut + ' psu';
+    }
+
+    var diffBadge = $('hero-diff-badge');
+    if (diffBadge) {
+      diffBadge.className = 'badge ' + st.cls;
+      diffBadge.textContent = st.icon + ' ' + st.label;
+    }
+
+    var diffValEl = $('hero-diff-value');
+    if (diffValEl) {
+      diffValEl.textContent = v.diff !== null ? L.formatDiff(v.diff) : '-';
+    }
+
+    var measuredEl = $('hero-measured-at');
+    if (measuredEl) {
+      measuredEl.textContent = metaText(v, now);
+    }
+
+    var markerEl = $('hero-spectrum-marker');
+    if (markerEl) {
+      var pct = 0;
+      if (v.diff !== null) {
+        pct = Math.max(0, Math.min(100, (Math.max(0, v.diff) / 15) * 100));
+      }
+      markerEl.style.left = pct.toFixed(1) + '%';
+    }
+  }
+
   /* ---- 탭 ---- */
   function renderTabs(vs, code) {
     var nav = $('tabs');
@@ -79,7 +169,7 @@
       nav.appendChild(h('button', {
         type: 'button', role: 'tab', class: 'tab', id: 'tab-' + v.code,
         'aria-selected': selected ? 'true' : 'false',
-        'aria-label': v.name + '본부, ' + st.label,
+        'aria-label': v.name + ' 본부, ' + st.label,
         onclick: function () { location.hash = v.code; }
       }, v.name, v.status === 'ok' ? null : h('span', { class: 'dot ' + st.cls, 'aria-hidden': 'true', text: st.icon })));
     });
@@ -96,10 +186,10 @@
     return 'value' + (hasValue ? '' : ' none') + (text.length > 4 ? ' long' : '');
   }
 
-  // 단위(°C)는 섹션 제목과 표 머리글에 표기한다. 값 옆에 붙이면 좁은 화면에서 줄바꿈된다.
+  // 단위(℃)는 섹션 제목과 표 머리글에 표기한다. 값 옆에 붙이면 좁은 화면에서 줄바꿈된다.
   function metric(label, item, now) {
     var showValue = item && !item.stale && item.num !== null;
-    var valueText = showValue ? L.formatNumber(item.num) : '—';
+    var valueText = showValue ? L.formatNumber(item.num) : '-';
     var sub;
     if (!item) sub = '항목 없음';
     else if (item.stale) sub = '최종 수신 ' + L.formatTime(item.time, now);
@@ -114,8 +204,8 @@
     var ok = v.diff !== null;
     return h('div', { class: 'metric diff' },
       h('div', { class: 'label', text: '온도차' }),
-      h('div', { class: valueClass(ok ? L.formatDiff(v.diff) : '—', ok), text: ok ? L.formatDiff(v.diff) : '—' }),
-      h('div', { class: 'sub', text: ok ? '배수−취수' : '계산 불가' }));
+      h('div', { class: valueClass(ok ? L.formatDiff(v.diff) : '-', ok), text: ok ? L.formatDiff(v.diff) : '-' }),
+      h('div', { class: 'sub', text: ok ? '배수-취수' : '계산 불가' }));
   }
 
   function metaText(v, now) {
@@ -131,7 +221,7 @@
     box.textContent = '';
     var card = h('article', { class: 'card', 'aria-labelledby': 'detail-title' },
       h('div', { class: 'card-head' },
-        h('h2', { id: 'detail-title', text: v.name + '본부' }),
+        h('h2', { id: 'detail-title', text: v.name + ' 본부 상세 지표' }),
         badge(v.status)),
       h('p', { class: 'meta', text: metaText(v, now) }));
 
@@ -152,7 +242,7 @@
       metric('배수구', v.items.outTemp, now),
       diffMetric(v)));
 
-    card.appendChild(h('h3', { class: 'section-title', text: '염분' }));
+    card.appendChild(h('h3', { class: 'section-title', text: '염분 (psu)' }));
     card.appendChild(h('div', { class: 'metrics two' },
       metric('취수구', v.items.inSal, now),
       metric('배수구', v.items.outSal, now)));
@@ -163,7 +253,7 @@
   /* ---- 비교 표 ---- */
   function cell(item, now) {
     var ok = item && !item.stale && item.num !== null;
-    return h('td', { class: ok ? '' : 'none', text: ok ? L.formatNumber(item.num) : '—' });
+    return h('td', { class: ok ? '' : 'none', text: ok ? L.formatNumber(item.num) : '-' });
   }
 
   function whenText(v, now) {
@@ -172,28 +262,28 @@
     return (v.status === 'stale' ? '최종 수신 ' : '가장 최근 항목 ') + t;
   }
 
-  function mini(label, item, now, text) {
-    var ok = text !== undefined ? text !== '—' : (item && !item.stale && item.num !== null);
-    var shown = text !== undefined ? text : (ok ? L.formatNumber(item.num) : '—');
-    return h('div', { class: 'metric compact' },
+  function mini(label, item, now, text, isDiff) {
+    var ok = text !== undefined ? text !== '-' : (item && !item.stale && item.num !== null);
+    var shown = text !== undefined ? text : (ok ? L.formatNumber(item.num) : '-');
+    return h('div', { class: 'metric compact' + (isDiff ? ' diff' : '') },
       h('div', { class: 'label', text: label }),
       h('div', { class: 'value' + (ok ? '' : ' none'), text: shown }));
   }
 
-  // 좁은 화면용: 표 대신 본부별 카드
+  // 본부별 비교 카드
   function renderCompareCards(vs, now) {
     var box = $('compare-cards');
     box.textContent = '';
     vs.forEach(function (v) {
       box.appendChild(h('article', { class: 'card compare-card' },
         h('div', { class: 'card-head' },
-          h('a', { class: 'plant-link', href: '#' + v.code, text: v.name + '본부' }),
+          h('a', { class: 'plant-link', href: '#' + v.code, text: v.name + ' 본부' }),
           badge(v.status)),
         h('p', { class: 'meta', text: whenText(v, now) }),
         h('div', { class: 'metrics' },
           mini('취수구 수온(°C)', v.items.inTemp, now),
           mini('배수구 수온(°C)', v.items.outTemp, now),
-          mini('온도차(°C)', null, now, L.formatDiff(v.diff))),
+          mini('온도차(°C)', null, now, L.formatDiff(v.diff), true)),
         h('div', { class: 'metrics two' },
           mini('취수구 염분', v.items.inSal, now),
           mini('배수구 염분', v.items.outSal, now))));
@@ -212,7 +302,7 @@
       h('th', { scope: 'col', text: '온도차(°C)' }),
       h('th', { scope: 'col', text: '취수구 염분' }),
       h('th', { scope: 'col', text: '배수구 염분' }),
-      h('th', { scope: 'col', class: 'status-h', text: '최근 항목 시각' }))));
+      h('th', { scope: 'col', class: 'status-h', text: '최근 항목 시각' })));
     var body = h('tbody');
     vs.forEach(function (v) {
       var when = v.lastReceived ? L.formatTime(v.lastReceived, now) : '-';
@@ -286,6 +376,7 @@
     var detailCode = code === 'ALL' ? (wide.matches ? DEFAULT_CODE : null) : code;
     document.body.setAttribute('data-view', code === 'ALL' ? 'all' : 'detail');
     renderTabs(vs, wide.matches && code === 'ALL' ? DEFAULT_CODE : code);
+    renderHero(vs, detailCode || DEFAULT_CODE, now);
     if (detailCode) {
       var dv = vs.filter(function (v) { return v.code === detailCode; })[0];
       renderDetail(dv, now);
@@ -309,7 +400,7 @@
         return res.json();
       })
       .then(function (json) { state.history = json; state.historyError = false; state.historyFetchedMs = Date.now(); })
-      .catch(function () { state.historyError = !state.history; });   // 이전에 받은 이력이 있으면 계속 사용
+      .catch(function () { state.historyError = !state.history; }); // 이전에 받은 이력이 있으면 계속 사용
   }
 
   // forceHistory === true 이면 이력도 즉시 다시 받는다(새로고침 버튼).
@@ -339,6 +430,7 @@
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden && Date.now() - state.lastFetchMs > 2 * 60 * 1000) load();
   });
+
   /* ---- 설치형 웹앱(PWA) ---- */
   var deferredPrompt = null;
 
@@ -356,7 +448,7 @@
   function updateInstallUi() {
     var line = $('install-line'), btn = $('install-btn'), hint = $('install-hint');
     line.hidden = true; btn.hidden = true; hint.hidden = true;
-    if (isStandalone()) return;                       // 이미 앱으로 실행 중
+    if (isStandalone()) return;                  // 이미 앱으로 실행 중
     if (isInAppBrowser()) {
       hint.textContent = '앱으로 설치하려면 Chrome·삼성 인터넷·Safari 같은 기본 브라우저에서 이 주소를 열어 주세요.';
       hint.hidden = false; line.hidden = false;
