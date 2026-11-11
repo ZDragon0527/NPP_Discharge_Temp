@@ -4,49 +4,157 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#0b6e99" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0f1820" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#020617">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="온배수 현황">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>원전 온배수 현황</title>
   <meta name="description" content="원자력발전소 본부별 취수구·배수구 수온과 염분 현황">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b6e99'/%3E%3Cpath d='M5 12c4-3 6 3 11 0s7 3 11 0M5 20c4-3 6 3 11 0s7 3 11 0' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230284c7'/%3E%3Cpath d='M5 12c4-3 6 3 11 0s7 3 11 0M5 20c4-3 6 3 11 0s7 3 11 0' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-view="detail">
   <header class="site-header">
-    <div class="wrap">
-      <h1>원자력발전소 온배수 현황</h1>
-      <p class="sub">본부별 취수구·배수구 수온과 염분</p>
+    <div class="header-top">
+      <div class="wrap header-inner">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12c2.5-2.5 5-2.5 7.5 0s5 2.5 7.5 0 5-2.5 5 0"/>
+              <path d="M2 17c2.5-2.5 5-2.5 7.5 0s5 2.5 7.5 0 5-2.5 5 0"/>
+              <path d="M12 3v6m0 0L9.5 6.5M12 9l2.5-2.5"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <div class="brand-badges">
+              <span class="live-tag">실시간 현황</span>
+              <span id="header-status-badge" class="status-pill ok">
+                <span class="pulse-dot" aria-hidden="true"></span>
+                <span id="header-status-text">데이터 불러오는 중...</span>
+              </span>
+            </div>
+            <h1>원자력발전소 온배수 모니터링</h1>
+            <p class="sub">본부별 취수구·배수구 수온과 염분 실시간 현황</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="collected-chip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 7v5l3 2"/>
+            </svg>
+            <span id="collected">마지막 수집: -</span>
+          </div>
+          <button type="button" id="refresh" class="refresh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 16h5v5"/>
+            </svg>
+            <span>새로고침</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-subbar">
+      <div class="wrap subbar-inner">
+        <span class="subbar-label">발전본부 선택</span>
+        <nav id="tabs" class="tabs" role="tablist" aria-label="본부 선택"></nav>
+      </div>
     </div>
   </header>
 
   <main class="wrap" id="main">
-    <nav id="tabs" class="tabs" role="tablist" aria-label="본부 선택"></nav>
     <div id="notice" class="notice-area" role="status" aria-live="polite"></div>
+
+    <section id="hero" class="hero-banner" aria-label="선택 본부 온배수 핵심 요약">
+      <div class="hero-bg-glow" aria-hidden="true"></div>
+      <div class="hero-content">
+        <div class="hero-info">
+          <div id="hero-badge-wrap" class="hero-status-pill ok">
+            <span class="pulse-dot" aria-hidden="true"></span>
+            <span id="hero-status-text">수신 상태를 확인하는 중입니다...</span>
+          </div>
+          <div class="hero-title-row">
+            <h2 id="hero-plant-title">월성 원자력발전소 온배수 현황</h2>
+            <span id="hero-plant-region" class="hero-region-tag">경북 경주시 양남면 일원</span>
+          </div>
+          <p id="hero-plant-desc" class="hero-desc">
+            발전소 냉각수로 사용된 후 배출되는 배수구 수온과 취수구 해수 수온 및 염분 측정 현황입니다.
+          </p>
+          <div class="hero-quick-stats">
+            <div class="hero-Quick-item">
+              <span class="q-label">취수구 수온</span>
+              <strong id="hero-in-temp" class="q-val sky">-</strong>
+            </div>
+            <div class="hero-Quick-item">
+              <span class="q-label">배수구 수온</span>
+              <strong id="hero-out-temp" class="q-val amber">-</strong>
+            </div>
+            <div class="hero-Quick-item">
+              <span class="q-label">취수/배수 염분</span>
+              <strong id="hero-sal-pair" class="q-val slate">- / -</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-gauge-box">
+          <div class="gauge-top">
+            <span id="hero-diff-label">배수구 - 취수구 온도차</span>
+            <span id="hero-diff-badge" class="badge ok">수신 대기</span>
+          </div>
+          <div class="gauge-main">
+            <span id="hero-diff-value" class="gauge-num">-</span>
+            <span class="gauge-unit">°C</span>
+          </div>
+          <p id="hero-measured-at" class="gauge-meta">측정 기준 시각: -</p>
+
+          <div class="spectrum-wrap">
+            <div class="spectrum-labels">
+              <span>온도차 위치 (0 ~ 15°C)</span>
+              <span id="hero-spectrum-caption">배수-취수 수온 편차</span>
+            </div>
+            <div class="spectrum-bar">
+              <div class="spectrum-fill"></div>
+              <div id="hero-spectrum-marker" class="spectrum-marker" style="left: 0%;"></div>
+            </div>
+            <div class="spectrum-ticks">
+              <span>0.0°C</span>
+              <span>7.5°C</span>
+              <span>15.0°C</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="detail" class="detail" aria-live="polite"></section>
     <section id="trend" class="trend-section"></section>
     <section id="compare" class="compare" aria-labelledby="compare-title">
-      <h2 id="compare-title">4개 본부 비교</h2>
+      <div class="section-header-row">
+        <h2 id="compare-title">4개 본부 비교</h2>
+        <span class="section-sub-hint">본부명을 클릭하면 해당 본부 상세 추이로 이동합니다</span>
+      </div>
       <div id="compare-cards" class="compare-cards"></div>
       <div class="table-wrap" tabindex="0" role="region" aria-label="4개 본부 비교표(좌우로 스크롤)">
         <table id="compare-table"></table>
       </div>
     </section>
-    <p id="loading" class="loading">데이터를 불러오는 중…</p>
+    <p id="loading" class="loading">데이터를 불러오는 중...</p>
   </main>
 
   <footer class="site-footer">
-    <div class="wrap">
-      <p class="update-line">
-        <span id="collected">마지막 수집: -</span>
-        <button type="button" id="refresh" class="refresh">새로고침</button>
-      </p>
+    <div class="wrap footer-inner">
       <p id="install-line" class="install-line" hidden>
         <button type="button" id="install-btn" class="refresh" hidden>앱으로 설치</button>
         <span id="install-hint" hidden></span>
