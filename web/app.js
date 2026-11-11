@@ -130,7 +130,7 @@
     if (heroSalPair) {
       var sIn = inSalOk ? L.formatNumber(inSalItem.num) : '-';
       var sOut = outSalOk ? L.formatNumber(outSalItem.num) : '-';
-      heroSalPair.textContent = sIn + ' / ' + sOut + ' psu';
+      heroSalPair.textContent = sIn + ' / ' + sOut;
     }
 
     var diffBadge = $('hero-diff-badge');
@@ -242,7 +242,7 @@
       metric('배수구', v.items.outTemp, now),
       diffMetric(v)));
 
-    card.appendChild(h('h3', { class: 'section-title', text: '염분 (psu)' }));
+    card.appendChild(h('h3', { class: 'section-title', text: '염분' }));
     card.appendChild(h('div', { class: 'metrics two' },
       metric('취수구', v.items.inSal, now),
       metric('배수구', v.items.outSal, now)));
