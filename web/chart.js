@@ -12,7 +12,7 @@
 
   var L = root.NPP;
   var SVGNS = 'http://www.w3.org/2000/svg';
-  var M = { t: 14, r: 50, b: 26, l: 40 };   // 여백: 오른쪽은 끝점 라벨, 왼쪽은 y 눈금
+  var M = { t: 14, r: 34, b: 26, l: 32 };    // 여백: 오른쪽은 끝점 라벨, 왼쪽은 y 눈금
   var LABEL_GAP = 14;                       // 끝점 라벨 사이 최소 간격(px)
 
   function svg(tag, attrs, parent) {
@@ -57,7 +57,7 @@
 
     var W = Math.max(260, spec.width || container.clientWidth || 320);
     var H = spec.height || (W < 640 ? 125 : 210);
-    var pw = W - M.l - M.r, ph = H - M.t - M.b;
+    var pw = W - M.l - , ph = H - M.t - M.b;
     var start = spec.startMin, end = spec.endMin;
 
     // y 축 범위: 값 범위 + 8% 여백 → 깔끔한 눈금
@@ -80,7 +80,7 @@
     // 격자 + y 눈금 (1px 실선, 눈금 라벨은 보조 텍스트색)
     yt.ticks.forEach(function (v) {
       var yy = y(v);
-      svg('line', { x1: M.l, x2: W - M.r, y1: yy, y2: yy, class: v === yt.min ? 'axis-line' : 'grid-line' }, el);
+      svg('line', { x1: M.l, x2: W - , y1: yy, y2: yy, class: v === yt.min ? 'axis-line' : 'grid-line' }, el);
       svg('text', { x: M.l - 6, y: yy, dy: '.35em', 'text-anchor': 'end', class: 'tick-label' }, el).textContent = v.toFixed(yt.decimals);
     });
 
