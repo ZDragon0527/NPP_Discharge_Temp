@@ -56,7 +56,7 @@
     }
 
     var W = Math.max(260, spec.width || container.clientWidth || 320);
-    var H = spec.height || 210;
+    var H = spec.height || (W < 640 ? 125 : 210);
     var pw = W - M.l - M.r, ph = H - M.t - M.b;
     var start = spec.startMin, end = spec.endMin;
 
