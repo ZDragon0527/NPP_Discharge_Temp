@@ -13,7 +13,7 @@
  */
 'use strict';
 
-var CACHE = 'npp-discharge-v3';
+var CACHE = 'npp-discharge-v4';
 var CACHE_PREFIX = 'npp-discharge-';
 var NETWORK_TIMEOUT_MS = 4000;
 var DEFAULT_DATA_BASE = 'https://raw.githubusercontent.com/ZDragon0527/NPP_Discharge_Temp/data/';
