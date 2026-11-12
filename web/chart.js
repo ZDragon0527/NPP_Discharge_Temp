@@ -12,8 +12,7 @@
 
   var L = root.NPP;
   var SVGNS = 'http://www.w3.org/2000/svg';
-  var M = { t: 14, r: 34, b: 26, l: 32 };    // 여백: 오른쪽은 끝점 라벨, 왼쪽은 y 눈금
-  var LABEL_GAP = 14;                       // 끝점 라벨 사이 최소 간격(px)
+  var M = { t: 28, r: 12, b: 26, l: 30 };    // 여백: 위쪽은 최신값 표시줄, 왼쪽은 y 눈금, 오른쪽은 끝점 마커만
 
   function svg(tag, attrs, parent) {
     var e = document.createElementNS(SVGNS, tag);
@@ -113,23 +112,20 @@
       });
     });
 
-    // 끝점: 마커 + 값 라벨(텍스트색). 라벨이 겹치면 위아래로 벌린다(2계열 기준, 점 바로 옆에 유지).
-    var ends = series.map(function (s) {
+    // 끝점: 마커는 선 끝에 두고, 최신 값은 그래프 위쪽 줄(오른쪽 정렬)에 계열 색 점과 함께 표시한다.
+    // 값이 선과 겹치지 않는다. 오른쪽 끝 계열부터 안쪽으로 차례로 배치한다.
+    series.forEach(function (s) {
       var p = s.points[s.points.length - 1];
-      return { s: s, px: x(p[0]), py: y(p[1]), ly: y(p[1]), v: p[1] };
-    }).sort(function (a, b) { return a.py - b.py; });
-    for (var i = 1; i < ends.length; i++) {
-      var gap = ends[i].ly - ends[i - 1].ly;
-      if (gap < LABEL_GAP) {
-        var mid = (ends[i].ly + ends[i - 1].ly) / 2;
-        ends[i - 1].ly = mid - LABEL_GAP / 2;
-        ends[i].ly = mid + LABEL_GAP / 2;
-      }
-    }
-    ends.forEach(function (e) {
-      svg('circle', { cx: e.px, cy: e.py, r: 4, fill: e.s.color, class: 'dot-ring' }, el);
-      var anchor = e.px + 8 + 34 > W ? 'end' : 'start';
-      svg('text', { x: anchor === 'start' ? e.px + 8 : e.px - 8, y: e.ly, dy: '.35em', 'text-anchor': anchor, class: 'end-label' }, el).textContent = fmt(e.v);
+      svg('circle', { cx: x(p[0]), cy: y(p[1]), r: 4, fill: s.color, class: 'dot-ring' }, el);
+    });
+    var cursorX = W - M.r;
+    series.slice().reverse().forEach(function (s) {
+      var p = s.points[s.points.length - 1];
+      var text = fmt(p[1]);
+      var tw = text.length * 8 + 2;
+      svg('text', { x: cursorX, y: 11, dy: '.35em', 'text-anchor': 'end', class: 'end-label' }, el).textContent = text;
+      svg('circle', { cx: cursorX - tw - 8, cy: 11, r: 4, fill: s.color }, el);
+      cursorX -= tw + 8 + 4 + 12;
     });
 
     // ---- 호버/포커스 레이어 ----
