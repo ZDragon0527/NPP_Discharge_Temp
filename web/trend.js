@@ -8,7 +8,7 @@
   var C = root.NPPChart;
   var TABLE_ROWS = 48;
   var Y_MIN_SPAN = 2;   // y 축 최소 폭(°C 또는 염분 단위). 미세한 변동이 과장되어 보이지 않게 한다.
-  var state = { range: '24h', ctx: null, container: null, resizeTimer: null };
+  var state = { range: '24h', expanded: false, ctx: null, container: null, resizeTimer: null };
 
   function h(tag, cls, text) {
     var e = document.createElement(tag);
@@ -81,6 +81,7 @@
     container.textContent = '';
     var card = h('article', 'card trend');
     card.setAttribute('aria-labelledby', 'trend-title');
+  card.setAttribute('data-expanded', state.expanded ? 'true' : 'false');
     var head = h('div', 'card-head');
     var title = h('h2', '', ctx.name + '본부 추이');
     title.id = 'trend-title';
@@ -102,7 +103,22 @@
       });
       group.appendChild(b);
     });
-    head.appendChild(group);
+    var controls = h('div', 'trend-controls');
+      controls.appendChild(group);
+      var toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.className = 'trend-toggle';
+      toggleBtn.setAttribute('aria-expanded', state.expanded ? 'true' : 'false');
+      toggleBtn.innerHTML = '<span>' + (state.expanded ? '접기' : '상세 펼치기') + '</span>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+      toggleBtn.addEventListener('click', function () {
+           state.expanded = !state.expanded;
+           card.setAttribute('data-expanded', state.expanded ? 'true' : 'false');
+           toggleBtn.setAttribute('aria-expanded', state.expanded ? 'true' : 'false');
+           toggleBtn.querySelector('span').textContent = state.expanded ? '접기' : '상세 펼치기';
+         });
+      controls.appendChild(toggleBtn);
+      head.appendChild(controls);
     card.appendChild(head);
     container.appendChild(card);
 
