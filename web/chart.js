@@ -80,7 +80,7 @@
     // 격자 + y 눈금 (1px 실선, 눈금 라벨은 보조 텍스트색)
     yt.ticks.forEach(function (v) {
       var yy = y(v);
-      svg('line', { x1: M.l, x2: W - , y1: yy, y2: yy, class: v === yt.min ? 'axis-line' : 'grid-line' }, el);
+      svg('line', { x1: M.l, x2: W - M.r, y1: yy, y2: yy, class: v === yt.min ? 'axis-line' : 'grid-line' }, el);
       svg('text', { x: M.l - 6, y: yy, dy: '.35em', 'text-anchor': 'end', class: 'tick-label' }, el).textContent = v.toFixed(yt.decimals);
     });
 
