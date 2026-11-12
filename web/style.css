@@ -17,7 +17,11 @@ body{margin:0;min-height:100vh;background-color:var(--bg);background-image:var(-
 .status-pill.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-border)}
 .status-pill.bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad-border)}
 .pulse-dot{width:6px;height:6px;border-radius:999px;background:currentColor;display:inline-block;animation:pulseGlow 2s infinite}
-@keyframes pulseGlow{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}
+@keyframes pulseGlow{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}@keyframes liveBreathe{0%,100%{filter:brightness(1);box-shadow:0 0 0 0 rgba(16,185,129,.2)}50%{filter:brightness(1.16);box-shadow:0 0 10px 2px rgba(16,185,129,.35)}}
+.badge.ok,.hero-status-pill.ok,.status-pill.ok{animation:liveBreathe 2.6s infinite ease-in-out}
+.hero-top-badges{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0}
+.hero-status-pill{flex-shrink:0;white-space:nowrap}
+.hero-region-tag{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}}
 .site-header h1{margin:0;font-size:1rem;font-weight:800;letter-spacing:-.02em;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .title-mobile{display:inline}
 .title-desktop{display:none}
