@@ -57,7 +57,7 @@
 
     var W = Math.max(260, spec.width || container.clientWidth || 320);
     var H = spec.height || (W < 640 ? 125 : 210);
-    var pw = W - M.l - , ph = H - M.t - M.b;
+    var pw = W - M.l - M.r, ph = H - M.t - M.b;
     var start = spec.startMin, end = spec.endMin;
 
     // y 축 범위: 값 범위 + 8% 여백 → 깔끔한 눈금
