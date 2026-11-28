@@ -1,0 +1,177 @@
+{
+  "plants": {
+    "WS": {
+      "name": "월성",
+      "fetched_at_utc": "2026-11-28T17:10:23Z",
+      "error": null,
+      "status": "stale",
+      "items": [
+        {
+          "expl": "취수구-수온",
+          "name": "2200-RM001",
+          "time": "2026-11-28 21:00",
+          "value": "15.5",
+          "age_minutes": 310,
+          "stale": true
+        },
+        {
+          "expl": "취수구-염분",
+          "name": "2200-RM002",
+          "time": "2026-11-28 21:00",
+          "value": "29.3",
+          "age_minutes": 310,
+          "stale": true
+        },
+        {
+          "expl": "배수구-수온",
+          "name": "2220-RM005",
+          "time": "2026-11-28 20:50",
+          "value": "22.3",
+          "age_minutes": 320,
+          "stale": true
+        },
+        {
+          "expl": "배수구-염분",
+          "name": "2220-RM006",
+          "time": "2026-11-28 20:50",
+          "value": "32.1",
+          "age_minutes": 320,
+          "stale": true
+        }
+      ],
+      "probe": {
+        "checked_at_utc": "2026-11-28T16:30:28Z",
+        "baseline": "2026-11-28 21:00",
+        "variants": {
+          "B numOfRows=9": "2026-11-28 21:00",
+          "C _=타임스탬프": "2026-11-28 21:00",
+          "D no-cache 헤더": "2026-11-28 21:00",
+          "E 기준 재호출": "2026-11-28 21:00"
+        },
+        "verdict": "source"
+      }
+    },
+    "KR": {
+      "name": "고리",
+      "fetched_at_utc": "2026-11-28T17:10:23Z",
+      "error": null,
+      "status": "stale",
+      "items": [
+        {
+          "expl": "취수구-수온",
+          "name": "2100-RM001",
+          "time": "2026-07-07 10:19",
+          "value": "0",
+          "age_minutes": 208311,
+          "stale": true
+        },
+        {
+          "expl": "취수구-염분",
+          "name": "2100-RM002",
+          "time": "2026-07-07 10:19",
+          "value": "0",
+          "age_minutes": 208311,
+          "stale": true
+        },
+        {
+          "expl": "배수구-수온",
+          "name": "2100-RM005",
+          "time": "2026-07-07 10:19",
+          "value": "0",
+          "age_minutes": 208311,
+          "stale": true
+        },
+        {
+          "expl": "배수구-염분",
+          "name": "2100-RM006",
+          "time": "2026-07-07 10:19",
+          "value": "0",
+          "age_minutes": 208311,
+          "stale": true
+        }
+      ]
+    },
+    "YK": {
+      "name": "한빛",
+      "fetched_at_utc": "2026-11-28T17:10:23Z",
+      "error": null,
+      "status": "ok",
+      "items": [
+        {
+          "expl": "취수구-수온",
+          "name": "2300-RM001",
+          "time": "2026-11-29 02:00",
+          "value": "10.5",
+          "age_minutes": 10,
+          "stale": false
+        },
+        {
+          "expl": "취수구-염분",
+          "name": "2300-RM002",
+          "time": "2026-11-29 02:00",
+          "value": "33.1",
+          "age_minutes": 10,
+          "stale": false
+        },
+        {
+          "expl": "배수구-수온",
+          "name": "2300-RM005",
+          "time": "2026-11-29 02:00",
+          "value": "17.8",
+          "age_minutes": 10,
+          "stale": false
+        },
+        {
+          "expl": "배수구-염분",
+          "name": "2300-RM006",
+          "time": "2026-11-29 02:00",
+          "value": "32.8",
+          "age_minutes": 10,
+          "stale": false
+        }
+      ]
+    },
+    "UJ": {
+      "name": "한울",
+      "fetched_at_utc": "2026-11-28T17:10:23Z",
+      "error": null,
+      "status": "ok",
+      "items": [
+        {
+          "expl": "취수구-수온",
+          "name": "2400-RM001",
+          "time": "2026-11-29 02:09",
+          "value": "15.3",
+          "age_minutes": 1,
+          "stale": false
+        },
+        {
+          "expl": "취수구-염분",
+          "name": "2400-RM002",
+          "time": "2026-11-29 02:09",
+          "value": "22.9",
+          "age_minutes": 1,
+          "stale": false
+        },
+        {
+          "expl": "배수구-수온",
+          "name": "2400-RM005",
+          "time": "2026-11-29 02:09",
+          "value": "22.9",
+          "age_minutes": 1,
+          "stale": false
+        },
+        {
+          "expl": "배수구-염분",
+          "name": "2400-RM006",
+          "time": "2026-11-29 02:09",
+          "value": "29.9",
+          "age_minutes": 1,
+          "stale": false
+        }
+      ]
+    }
+  },
+  "updated_at_utc": "2026-11-28T17:10:23Z",
+  "stale_after_minutes": 60
+}
